@@ -25,7 +25,6 @@ class S3IO():
     """
     # initialization
     def __init__(self,
-                 bucket: str,
                  profile: str = 'default'):
         """
         Initialization of the S3IO object.
@@ -39,8 +38,8 @@ class S3IO():
             The name of the profile that holds the access key
             and access id in the AWS credentials file
         """
-        self.bucket = bucket
-        self._profile = profile
+        self.bucket = self._get_bucket_name()
+        self._profile = self._get_profile_name()
         # establish a connection with s3
         logging.info("Establishing a connection with S3 using passed parameters")
         try:
@@ -50,6 +49,20 @@ class S3IO():
             raise ValueError
         self.s3_client = session.client('s3')
         self.s3_resource = session.resource('s3')
+
+    @staticmethod
+    def _get_bucket_name() -> str:
+        """
+        Get the bucket name
+        """
+        return os.environ["S3_ARB_BUCKET"]
+
+    @staticmethod
+    def _get_profile_name() -> str:
+        """
+        Get the profile name
+        """
+        return os.environ["S3_PROFILE"]
 
     def s3_is_dir(self,
                   path: str) -> bool:
@@ -132,13 +145,6 @@ class S3IO():
             the full file path where the dataframe will be saved in s3
             example ->  file/located/here.csv
         """
-        # Check if the path for the file exists
-        # split_path = file_path.split("/")[:-1]
-        # path = "/".join(split_path)
-        # if not self.s3_is_dir(path):
-        #     logging.error(f"The given path does not exist: {path}")
-        #     raise ValueError("Please pass a valid path")
-        # Create a temp file locally using df and load to the path s3
         with tempfile.NamedTemporaryFile(delete=True, mode='r+') as temp:
             df.write_parquet(f"{temp.name}.parq")
             self.s3_resource.Bucket(self.bucket).upload_file(

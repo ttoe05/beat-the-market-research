@@ -13,7 +13,7 @@ from typing import Union, Optional
 import polars as pl
 import pandas as pd
 import yfinance as yf
-from .s3io import S3IO
+from s3io import S3IO
 
 
 class FinancialData:
@@ -38,7 +38,7 @@ class FinancialData:
         AWS credentials profile name
     """
 
-    def __init__(self, bucket: str, profile: str = 'default'):
+    def __init__(self):
         """
         Initialize the FinancialData class.
 
@@ -49,13 +49,11 @@ class FinancialData:
         profile : str, default='default'
             AWS credentials profile name
         """
-        self._bucket = bucket
-        self._profile = profile
-        self._s3io = S3IO(bucket=bucket, profile=profile)
+        self._s3io = S3IO()
         self._tickers_df = None
         self._ticker_symbols = None
 
-        logging.info(f"FinancialData initialized with bucket: {bucket}, profile: {profile}")
+        logging.info(f"FinancialData initialized")
 
     def list_tickers(self, as_pandas: bool = False) -> Union[pl.DataFrame, pd.DataFrame]:
         """
@@ -86,10 +84,10 @@ class FinancialData:
             try:
                 logging.info("Loading tickers from S3: stock_tracker/tickers.parq")
                 self._tickers_df = self._s3io.s3_read_parquet('stock_tracker/tickers.parq')
-
-                # Validate that Symbol column exists
-                if 'Symbol' not in self._tickers_df.columns:
-                    raise KeyError("Tickers dataframe is missing the required 'Symbol' column")
+                # filter the data to only the tickers that have been loaded and is current
+                self._tickers_df = self._tickers_df.filter(
+                    pl.col('is_current') == True
+                ).select(['Symbol', 'Name', 'Market Cap', 'Country', 'IPO Year', 'Sector', 'Industry', 'Market Cap Name'])
 
                 # Extract and cache ticker symbols for validation
                 self._ticker_symbols = self._tickers_df['Symbol'].to_list()
@@ -181,7 +179,10 @@ class FinancialData:
         try:
             logging.info(f"Reading balance sheet for {ticker_upper} from S3")
             df = self._s3io.s3_read_parquet(path)
-
+            cols_returned = [col for col in df.columns if col not in ['is_current', 'update_time']]
+            df = df.filter(
+                pl.col('is_current') == True
+            ).select(cols_returned)
             # Return in requested format
             if as_pandas:
                 return df.to_pandas()
@@ -230,7 +231,10 @@ class FinancialData:
         try:
             logging.info(f"Reading income statement for {ticker_upper} from S3")
             df = self._s3io.s3_read_parquet(path)
-
+            cols_returned = [col for col in df.columns if col not in ['is_current', 'update_time']]
+            df = df.filter(
+                pl.col('is_current') == True
+            ).select(cols_returned)
             # Return in requested format
             if as_pandas:
                 return df.to_pandas()
@@ -279,7 +283,10 @@ class FinancialData:
         try:
             logging.info(f"Reading cash flow for {ticker_upper} from S3")
             df = self._s3io.s3_read_parquet(path)
-
+            cols_returned = [col for col in df.columns if col not in ['is_current', 'update_time']]
+            df = df.filter(
+                pl.col('is_current') == True
+            ).select(cols_returned)
             # Return in requested format
             if as_pandas:
                 return df.to_pandas()
