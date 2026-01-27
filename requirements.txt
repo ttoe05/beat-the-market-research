@@ -1,0 +1,22 @@
+# Core data manipulation
+polars>=0.19.0
+pandas>=1.5.0
+numpy>=1.23.0
+
+# AWS S3 integration
+boto3>=1.26.0
+
+# Financial data APIs
+yfinance>=0.2.0
+
+# Machine Learning
+scikit-learn>=1.2.0
+scipy>=1.10.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Jupyter notebooks (for research)
+jupyter>=1.0.0
+notebook>=6.5.0
+ipykernel>=6.21.0
