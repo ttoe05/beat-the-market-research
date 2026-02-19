@@ -23,34 +23,84 @@ This repository is designed to facilitate quantitative finance research by provi
 
 ```
 beat-the-market-research/
-├── src/                              # Source code directory
-│   ├── financial_data.py            # Main data access class (FinancialData)
-│   ├── s3io.py                      # S3 interaction wrapper (S3IO)
-│   ├── claude/                      # Documentation and planning
-│   │   ├── readme_plan.md          # Original documentation plan
-│   │   ├── readme_planII.md        # Comprehensive documentation plan
-│   │   └── fin_data.md             # FinancialData class design document
-│   └── Research_Notebooks/          # Research and analysis
-│       ├── Testing/                 # Testing notebooks and examples
-│       │   └── fin_data_test.ipynb # Example: Testing FinancialData class
-│       ├── price_forecasting/       # Price prediction research
-│       │   └── auto_kernel_ensemble.py # Kernel autoregressive model
-│       └── [Other research areas]/  # Add your research folders here
-├── claude/                          # Project documentation
-│   └── readme_planII.md            # This documentation plan
-├── README.md                        # This file
-├── requirements.txt                 # Python dependencies
-├── .env.example                    # Environment variable template
-└── .gitignore                      # Git ignore patterns
+├── src/                                    # Source code
+│   ├── financial_data.py                  # Main data access class (FinancialData)
+│   ├── s3io.py                            # S3 interaction wrapper (S3IO)
+│   ├── backtesting/                       # Backtesting and walk-forward validation
+│   │   ├── backtest_engine.py             # Core backtest execution engine
+│   │   ├── performance_metrics.py         # Portfolio performance calculations
+│   │   ├── portfolio.py                   # Portfolio state management
+│   │   ├── risk_manager.py               # Position sizing and risk controls
+│   │   ├── strategy.py                    # Base strategy interface
+│   │   ├── walk_forward.py               # Walk-forward validator (regression)
+│   │   ├── walk_forward_classifier.py    # Walk-forward validator (classification)
+│   │   └── run_experiments.py            # CLI runner for walk-forward classifier
+│   ├── data/                              # Data loading and preprocessing
+│   │   ├── data_collector.py             # Fetch OHLCV data (Yahoo Finance)
+│   │   ├── data_loader.py                # Window-based data access for validators
+│   │   ├── data_preprocessor.py          # Data cleaning and transformation
+│   │   ├── data_splitter.py              # Train/val/test splitting
+│   │   └── data_validator.py             # Data quality checks
+│   ├── features/                          # Feature and label engineering
+│   │   ├── feature_engineering.py        # Orchestrates all feature generators
+│   │   ├── feature_selection.py          # Feature selection utilities
+│   │   ├── label_generator.py            # Classification and regression labels
+│   │   ├── price_features.py             # Returns, MAs, momentum, price lags
+│   │   ├── technical_indicators.py       # RSI, MACD, Bollinger Bands, etc.
+│   │   ├── volatility_features.py        # ATR, historical volatility, etc.
+│   │   └── volume_features.py            # Volume-based features
+│   ├── models/                            # Model definitions and utilities
+│   │   ├── base_model.py                 # Abstract base model interface
+│   │   ├── ensemble.py                   # Ensemble model wrapper
+│   │   ├── hyperparameter_tuner.py       # Hyperparameter search utilities
+│   │   ├── model_evaluator.py            # Evaluation metrics and reporting
+│   │   ├── model_persistence.py          # Save/load trained models
+│   │   └── model_trainer.py              # Training loop and cross-validation
+│   ├── scripts/                           # Standalone CLI scripts
+│   │   ├── build_features.py             # Build and save feature sets
+│   │   ├── collect_data.py               # Fetch and cache raw market data
+│   │   ├── evaluate_model.py             # Evaluate a saved model
+│   │   ├── predict.py                    # Generate predictions from saved model
+│   │   ├── run_backtest.py               # Run a strategy backtest
+│   │   └── train.py                      # Train a classification model
+│   ├── utils/                             # Shared utilities
+│   │   ├── config.py                     # Configuration loading helpers
+│   │   ├── date_utils.py                 # Date manipulation utilities
+│   │   ├── file_utils.py                 # File I/O helpers
+│   │   ├── logger.py                     # Centralised logging setup
+│   │   └── metrics.py                    # Shared metric functions
+│   ├── claude/                            # Source-level design documents
+│   │   ├── readme_plan.md                # Original documentation plan
+│   │   └── fin_data.md                   # FinancialData class design document
+│   └── Research_Notebooks/               # Research and analysis
+│       ├── Testing/
+│       │   └── fin_data_test.ipynb       # FinancialData class tests
+│       └── price_forecasting/
+│           └── auto_kernel_ensemble.py   # Kernel autoregressive model
+├── configs/                               # YAML configuration files
+│   ├── config.yaml                        # General project config
+│   ├── data_config.yaml                   # Data pipeline settings
+│   ├── feature_config.yaml               # Feature engineering settings
+│   └── model_config.yaml                 # Model hyperparameter defaults
+├── claude/                                # Project-level planning documents
+│   ├── readme_planII.md                  # Comprehensive documentation plan
+│   └── walk_forward_classifier.md        # Walk-forward classifier design plan
+├── walkforward_classifier_flow.png        # Flow diagram for classifier design
+├── CONTRIBUTING.md                        # Contribution guidelines
+├── README.md                              # This file
+└── requirements.txt                       # Python dependencies
 ```
 
 ### Directory Purposes
 
-- **src/** - All source code and research notebooks
-  - **financial_data.py** - User-friendly interface for accessing financial data without exposing S3 paths
-  - **s3io.py** - Low-level S3 operations wrapper
-  - **Research_Notebooks/** - Research projects organized by topic
-- **claude/** - Project-level documentation and planning files
+- **src/backtesting/** - Walk-forward validation and backtesting infrastructure
+- **src/data/** - Data collection, loading, and preprocessing pipelines
+- **src/features/** - Feature engineering and label generation
+- **src/models/** - Model training, evaluation, and persistence
+- **src/scripts/** - Standalone CLI entry points for common workflows
+- **src/utils/** - Shared logging, config, and file utilities
+- **configs/** - YAML configuration files for data, features, and models
+- **claude/** - Project-level planning and design documents
 
 ### Naming Conventions
 - Research folders: Use descriptive names like `price_forecasting`, `portfolio_optimization`, `risk_analysis`
@@ -299,6 +349,105 @@ s3.s3_write_parquet(df, 'test/output.parq')
 exists = s3.s3_is_dir('balance/')
 print(f"Path exists: {exists}")
 ```
+
+## Walk-Forward Classification
+
+`src/backtesting/run_experiments.py` is the CLI entry point for running a
+time-series-safe walk-forward validation experiment using an XGBoost classifier.
+It fetches market data, engineers features, generates labels, and runs the
+`WalkForwardClassifier` loop automatically.
+
+### Prerequisites
+
+Ensure your virtual environment is active and dependencies are installed:
+
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Basic Usage
+
+Run from the **project root** directory using the module flag:
+
+```bash
+python -m src.backtesting.run_experiments --symbol AAPL
+```
+
+This uses all defaults: binary labels, 2% threshold, 252-day sliding window,
+precision scoring, and exports results to `results/walk_forward/AAPL/`.
+
+### Common Examples
+
+```bash
+# Quick smoke-test — runs only the last 30 windows
+python -m src.backtesting.run_experiments --symbol AAPL --testing
+
+# Custom date range with multiclass labels (buy / hold / sell)
+python -m src.backtesting.run_experiments \
+    --symbol MSFT \
+    --start 2015-01-01 \
+    --end 2024-12-31 \
+    --label-type multiclass
+
+# Aggressive mode — optimise for recall instead of precision
+python -m src.backtesting.run_experiments \
+    --symbol TSLA \
+    --scoring recall
+
+# Growing window (always trains from the start of history)
+python -m src.backtesting.run_experiments \
+    --symbol NVDA \
+    --window-type growing \
+    --min-window-size 252
+
+# Custom retrain interval and CV splits, results saved to a custom directory
+python -m src.backtesting.run_experiments \
+    --symbol AAPL \
+    --model-retrain-interval 10 \
+    --n-cv-splits 3 \
+    --output-dir results/my_experiment
+
+# Disable feature scaling
+python -m src.backtesting.run_experiments --symbol AAPL --no-scaling
+
+# Example with all the parameters needed to run when testing, remove testing when running full experiement
+python3 backtesting/run_experiments.py --symbol AAPL --start 2000-01-01 --end 2026-02-18 --label-type multiclass --forward-period 7 --threshold 0.02 --window-type sliding --step-size 1 --model-retrain-interval 30 --scoring precision --n-cv-splits 3 --output-dir results/xgb_classifier --testing --log-level WARNING
+
+```
+
+### All Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `--symbol` | *(required)* | Ticker symbol (e.g. `AAPL`) |
+| `--start` | `2015-01-01` | Data start date (YYYY-MM-DD) |
+| `--end` | today | Data end date (YYYY-MM-DD) |
+| `--label-type` | `binary` | `binary` or `multiclass` |
+| `--forward-period` | `5` | Forward-looking periods for label construction |
+| `--threshold` | `0.02` | Return threshold for buy/sell signals |
+| `--window-size` | `252` | Training window size (trading days) |
+| `--min-window-size` | `126` | Minimum rows required before first training step |
+| `--window-type` | `sliding` | `sliding` or `growing` |
+| `--step-size` | `1` | Steps to advance per iteration |
+| `--model-retrain-interval` | `20` | Retrain model every N prediction steps |
+| `--scoring` | `precision` | GridSearchCV metric: `precision` or `recall` |
+| `--n-cv-splits` | `5` | TimeSeriesSplit folds inside GridSearchCV |
+| `--no-scaling` | *(flag)* | Disable StandardScaler on features |
+| `--output-dir` | `results/walk_forward` | Directory for output parquet files |
+| `--testing` | *(flag)* | Run on last 30 windows only (smoke test) |
+| `--log-level` | `INFO` | `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
+
+### Output Files
+
+Results are written to `<output-dir>/<symbol>/`:
+
+| File | Contents |
+|---|---|
+| `walk_forward_classifier_results.parquet` | Per-step predictions: date, actual label, predicted class, class probabilities |
+| `walk_forward_classifier_model_summary.parquet` | Per-retrain metadata: best hyperparameters, CV score, precision, recall, accuracy, class distribution |
+
+---
 
 ## Research Workflow
 
