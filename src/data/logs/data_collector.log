@@ -1,0 +1,4 @@
+2026-02-09 22:12:50 - __main__ - INFO - Initialized DataCollector with source: yahoo
+2026-02-09 22:12:50 - __main__ - INFO - Fetching AAPL from Yahoo Finance: 2020-01-01 to 2024-12-31
+2026-02-09 22:12:51 - __main__ - INFO - Successfully fetched 1257 rows for AAPL
+2026-02-09 22:12:51 - __main__ - INFO - Saved data to data/raw/AAPL_raw.csv
