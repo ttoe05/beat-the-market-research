@@ -247,10 +247,43 @@ class PriceFeatures:
         logger.debug(f"Calculated price levels for windows: {windows}")
         return features
 
+    def generate_price_lags(self, data: pd.DataFrame, lags: int,
+                            smooth: bool = False,
+                            smooth_window: int = 3) -> pd.DataFrame:
+        """
+        Generate lagged close price features with optional EWM smoothing.
+
+        Args:
+            data: DataFrame with 'close' column
+            lags: Number of lags to generate
+            smooth: Whether to apply EWM smoothing to each lag
+            smooth_window: Span for the EWM smoothing (used when smooth=True)
+
+        Returns:
+            DataFrame with close price lag features. If smooth=False, columns are
+            named close_lag_1 ... close_lag_q. If smooth=True, columns are named
+            close_lag_ewm_1 ... close_lag_ewm_q.
+        """
+        features = pd.DataFrame(index=data.index)
+
+        for lag in range(1, lags + 1):
+            lagged = data['close'].shift(lag)
+            if smooth:
+                features[f'close_lag_ewm_{lag}'] = lagged.ewm(span=smooth_window, adjust=False).mean()
+            else:
+                features[f'close_lag_{lag}'] = lagged
+
+        logger.debug(f"Generated {lags} close price lags (smooth={smooth}, smooth_window={smooth_window})")
+        return features
+
     def generate_all_features(self, data: pd.DataFrame,
                             return_periods: List[int] = [1, 5, 10, 20],
                             ma_windows: List[int] = [5, 10, 20, 50, 200],
-                            momentum_periods: List[int] = [5, 10, 20]) -> pd.DataFrame:
+                            momentum_periods: List[int] = [5, 10, 20],
+                            set_lags: bool = False,
+                            lags: int = 1,
+                            smooth: bool = False,
+                            smooth_window: int = 3) -> pd.DataFrame:
         """
         Generate all price-based features.
 
@@ -259,6 +292,10 @@ class PriceFeatures:
             return_periods: Periods for return calculation
             ma_windows: Windows for moving averages
             momentum_periods: Periods for momentum calculation
+            set_lags: Whether to include lagged close price features
+            lags: Number of close price lags to generate (used when set_lags=True)
+            smooth: Whether to apply EWM smoothing to the price lags (used when set_lags=True)
+            smooth_window: Span for the EWM smoothing (used when set_lags=True and smooth=True)
 
         Returns:
             DataFrame with all price features
@@ -273,6 +310,9 @@ class PriceFeatures:
             self.calculate_momentum(data, momentum_periods),
             self.calculate_price_levels(data)
         ]
+
+        if set_lags:
+            feature_sets.append(self.generate_price_lags(data, lags, smooth, smooth_window))
 
         # Combine all features
         all_features = pd.concat(feature_sets, axis=1)
